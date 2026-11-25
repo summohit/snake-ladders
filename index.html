@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#061f17" />
+    <title>Snakes &amp; Ladders — Enchanted Jungle 3D</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,500;0,600;0,700;0,800;1,800&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="./src/styles.css" />
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./node_modules/three/build/three.module.js",
+          "gsap": "./node_modules/gsap/index.js"
+        }
+      }
+    </script>
+  </head>
+  <body class="home-active">
+    <!-- 3D WebGL Canvas -->
+    <canvas id="jungle-canvas" aria-label="Snakes and Ladders 3D Enchanted Jungle Board"></canvas>
+
+    <!-- Full-screen Facebook/WhatsApp style floating emoji fountain -->
+    <div id="emoji-fountain" class="emoji-fountain" aria-hidden="true"></div>
+
+    <!-- Full-screen Snake Bite Jump-Scare Flash & Fang Marks Overlay -->
+    <div id="bite-scare-fx" class="bite-scare-fx hidden" aria-hidden="true">
+      <div class="bite-vignette"></div>
+      <div class="bite-fangs">
+        <span class="fang-mark left"></span>
+        <span class="fang-mark right"></span>
+      </div>
+      <div class="bite-chomp-text" id="bite-chomp-text">🐍 BITTEN!</div>
+    </div>
+
+    <!-- Cursor-following dice lock tooltip when hovering on another player's turn -->
+    <div id="turn-lock-tooltip" class="turn-lock-tooltip hidden" role="status">
+      🔒 Wait! Opponent's Turn
+    </div>
+
+    <!-- Center Event Banner (Snake Bite, Ladder Climb, Bonus 6, Triple 6) -->
+    <div id="event-banner" class="event-banner hidden" aria-live="polite">
+      <div class="event-banner-title" id="event-banner-title">🪜 JUNGLE LADDER!</div>
+      <div class="event-banner-sub" id="event-banner-sub">Climbed 4 → 25!</div>
+    </div>
+
+    <!-- HOME SCREEN OVERLAY -->
+    <section id="home-screen" class="home-screen" aria-label="Snakes and Ladders Home">
+      <div class="home-fireflies" aria-hidden="true"></div>
+      <div class="home-content">
+        <div class="online-pill">
+          <span class="online-dot"></span>
+          <span id="online-count-label">Online • 1 player</span>
+        </div>
+
+        <header class="hero-emblem">
+          <div class="hero-crown">👑</div>
+          <h1 class="hero-title">SNAKES &amp; LADDERS</h1>
+          <div class="hero-subtitle">ENCHANTED JUNGLE 3D</div>
+        </header>
+
+        <div class="name-input-wrap">
+          <span class="name-icon" aria-hidden="true">🌿</span>
+          <input
+            id="home-name-input"
+            type="text"
+            maxlength="18"
+            placeholder="Enter your explorer name"
+            value="Player"
+            autocomplete="off"
+          />
+          <button type="button" id="home-name-clear" class="name-clear-btn" aria-label="Clear name">✕</button>
+        </div>
+
+        <div class="mode-cards">
+          <button type="button" id="btn-play-bots" class="mode-card mode-bots">
+            <div class="mode-icon">🤖</div>
+            <h2>Play with Bots</h2>
+            <p>Instant 4-player 3D jungle race vs AI</p>
+            <span class="mode-arrow">→</span>
+          </button>
+
+          <button type="button" id="btn-create-room" class="mode-card mode-create">
+            <div class="mode-icon">➕</div>
+            <h2>Create Room</h2>
+            <p>Host a jungle room &amp; invite friends</p>
+            <span class="mode-arrow">→</span>
+          </button>
+
+          <button type="button" id="btn-join-room" class="mode-card mode-join">
+            <div class="mode-icon">🔑</div>
+            <h2>Join Room</h2>
+            <p>Enter a 6-letter room code or name</p>
+            <span class="mode-arrow">→</span>
+          </button>
+        </div>
+
+        <div class="home-pedestal-glow" aria-hidden="true"></div>
+      </div>
+    </section>
+
+    <!-- IN-GAME HUD -->
+    <div id="game-hud" class="game-hud hidden">
+      <!-- Top Navigation Bar -->
+      <header class="hud-topbar">
+        <div class="hud-left">
+          <button type="button" id="btn-back-home" class="hud-pill-btn" title="Back to Home">🏠 Home</button>
+          <div id="hud-room-chip" class="hud-room-chip">🌿 Jungle Match</div>
+        </div>
+        <div class="hud-right">
+          <button type="button" id="btn-cam-view" class="hud-pill-btn" title="Switch 3D Camera Angle">🎥 Isometric</button>
+          <button type="button" id="btn-rules" class="hud-pill-btn" title="Rules">📜 Rules</button>
+          <button type="button" id="btn-mute" class="hud-pill-btn" title="Toggle Sound">🔊</button>
+        </div>
+      </header>
+
+      <!-- 4 Player Corner Seat Cards -->
+      <div class="seats-layer" id="seats-layer">
+        <!-- Populated dynamically by main.js -->
+      </div>
+
+      <!-- Last 3 Plays Feed -->
+      <aside class="feed-box" id="feed-box" aria-label="Recent Plays">
+        <div class="feed-title">🌿 Jungle Log</div>
+        <ul id="feed-list" class="feed-list"></ul>
+      </aside>
+
+      <!-- Bottom Control Dock: Roll Dice + Emoji Bar -->
+      <footer class="bottom-dock">
+        <div class="emoji-bar" aria-label="Emoji Reactions">
+          <button type="button" class="emoji-btn" data-emoji="🔥">🔥</button>
+          <button type="button" class="emoji-btn" data-emoji="😂">😂</button>
+          <button type="button" class="emoji-btn" data-emoji="🐍">🐍</button>
+          <button type="button" class="emoji-btn" data-emoji="🪜">🪜</button>
+          <button type="button" class="emoji-btn" data-emoji="😱">😱</button>
+          <button type="button" class="emoji-btn" data-emoji="👑">👑</button>
+        </div>
+
+        <button type="button" id="btn-roll-dice" class="roll-dice-btn">
+          <span class="roll-dice-icon" id="roll-dice-icon">🎲</span>
+          <span class="roll-dice-text">
+            <strong id="roll-btn-title">ROLL DICE</strong>
+            <small id="roll-btn-sub">Your Turn • Spacebar</small>
+          </span>
+        </button>
+      </footer>
+    </div>
+
+    <!-- MULTIPLAYER LOBBY / JOIN MODAL -->
+    <div id="mp-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Multiplayer Room">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3 id="mp-modal-title">🌿 Jungle Room</h3>
+          <button type="button" id="mp-modal-close" class="modal-close-btn" aria-label="Close">✕</button>
+        </div>
+
+        <!-- Join / Create Form View -->
+        <div id="mp-form-view" class="mp-view">
+          <label class="field-label" id="mp-field-label" for="mp-room-input">Room Code or Name</label>
+          <input id="mp-room-input" class="modal-input" type="text" maxlength="24" placeholder="e.g. X7K9PQ or Jungle Party" />
+          <p id="mp-error-msg" class="modal-error hidden"></p>
+          <button type="button" id="mp-submit-btn" class="primary-cta">Join Room</button>
+        </div>
+
+        <!-- Active Lobby View -->
+        <div id="mp-lobby-view" class="mp-view hidden">
+          <div class="room-code-banner">
+            <div>
+              <span class="code-label">ROOM CODE</span>
+              <strong id="lobby-room-code" class="code-value">------</strong>
+              <span id="lobby-room-name" class="code-sub">Jungle Room</span>
+            </div>
+            <button type="button" id="btn-copy-code" class="hud-pill-btn">📋 Copy</button>
+          </div>
+
+          <div id="lobby-seats-list" class="lobby-seats-list"></div>
+          <p id="lobby-error-msg" class="modal-error hidden"></p>
+
+          <div class="lobby-actions" id="lobby-host-actions">
+            <button type="button" id="btn-add-bot" class="secondary-cta">🤖 + Add AI Bot</button>
+            <button type="button" id="btn-start-match" class="primary-cta">🚀 Start Match</button>
+          </div>
+          <p id="lobby-guest-wait" class="guest-wait hidden">⏳ Waiting for the room host to start the match...</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RULES MODAL -->
+    <div id="rules-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Rules">
+      <div class="modal-card">
+        <div class="modal-head">
+          <h3>📜 Enchanted Jungle Rules</h3>
+          <button type="button" id="rules-close" class="modal-close-btn" aria-label="Close">✕</button>
+        </div>
+        <ul class="rules-list">
+          <li><strong>Classic 1–100 Race:</strong> Roll the 3D jungle die and race from Tile 1 to the Golden Crown on Tile 100.</li>
+          <li><strong>Bonus Six:</strong> Rolling a <strong>6</strong> awards an extra roll!</li>
+          <li><strong>Triple Six Penalty:</strong> Rolling three <strong>6</strong>s in a row forfeits the 3rd roll and passes your turn.</li>
+          <li><strong>Glowing Ladders (▲):</strong> Land at the base of a wooden ladder to climb up and leap ahead.</li>
+          <li><strong>Jungle Snakes (▼):</strong> Land on a serpent's head and slide all the way down to its tail!</li>
+          <li><strong>Exact Roll to Win:</strong> You must roll the exact number needed to land on Tile 100.</li>
+          <li><strong>60s Turn Timer:</strong> If time runs out, the dice automatically rolls for you.</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- VICTORY PODIUM MODAL -->
+    <div id="victory-modal" class="modal-backdrop hidden" role="dialog" aria-modal="true" aria-label="Match Victory">
+      <div class="modal-card victory-card">
+        <div class="victory-crown">👑</div>
+        <h2 id="victory-title">Player Wins!</h2>
+        <p id="victory-sub">Conquered the Enchanted Jungle on Tile 100</p>
+        <div id="victory-standings" class="victory-standings"></div>
+        <div class="victory-actions">
+          <button type="button" id="btn-rematch" class="primary-cta">🔄 Play Again</button>
+          <button type="button" id="btn-victory-home" class="secondary-cta">🏠 Main Menu</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./src/main.js"></script>
+  </body>
+</html>
